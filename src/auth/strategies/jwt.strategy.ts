@@ -4,7 +4,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserMySQLRepository } from '../../users/repositories/user.mysql-repository';
 import { JwtPayload } from '../types/jwt-payload.type';
-import { UnauthorizedException } from '../../../common/exceptions/unauthorized.exception';
+import { UserInactiveException } from '../exceptions/user-inactive.exception';
+import { UserNotFoundException } from '../../users/exceptions/user-not-found.exception';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -22,8 +23,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     async validate(payload: JwtPayload) {
         const user = await this.userRepository.findById(payload.sub);
 
-        if (!user || !user.is_active) {
-            throw new UnauthorizedException('User not found or inactive');
+        if (!user) {
+            throw new UserNotFoundException();
+        }
+
+        if (!user.is_active) {
+            throw new UserInactiveException();
         }
 
         return { userId: user.id, email: user.email };
