@@ -1,17 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { UserResponseDto } from '../../users/dtos/user-response.dto';
-import { GetUserProfileUseCase } from '../../users/use-cases/get-user-profile.use-case';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
+import { GetCurrentUserDto } from '../dtos/get-current-user.dto';
+import { UserMySQLRepository } from '../../users/repositories/user.mysql-repository';
+import { UserNotFoundException } from '../../users/exceptions/user-not-found.exception';
 
 @Injectable()
-export class GetCurrentUserUseCase
-    implements IUseCase<string, UserResponseDto>
-{
-    constructor(
-        private readonly getUserProfileUseCase: GetUserProfileUseCase,
-    ) {}
+export class GetCurrentUserUseCase {
+    constructor(private readonly userRepository: UserMySQLRepository) {}
 
-    async execute(userId: string): Promise<UserResponseDto> {
-        return this.getUserProfileUseCase.execute(userId);
+    async execute(
+        getCurrentUserDto: GetCurrentUserDto,
+    ): Promise<UserResponseDto> {
+        const user = await this.userRepository.findById(
+            getCurrentUserDto.userId,
+        );
+
+        if (!user) {
+            throw new UserNotFoundException();
+        }
+
+        return UserResponseDto.fromEntity(user);
     }
 }

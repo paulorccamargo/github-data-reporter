@@ -1,42 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { ReportMySQLRepository } from '../repositories/report.mysql-repository';
 import { ReportResponseDto } from '../dtos/report-response.dto';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
-
-interface ListUserReportsInput {
-    userId: string;
-    page: number;
-    limit: number;
-}
-
-interface ListUserReportsOutput {
-    data: ReportResponseDto[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-}
+import { ListUserReportsDto } from '../dtos/list-user-reports.dto';
+import { ListUserReportsResponseDto } from '../dtos/list-user-reports-response.dto';
 
 @Injectable()
-export class ListUserReportsUseCase
-    implements IUseCase<ListUserReportsInput, ListUserReportsOutput>
-{
+export class ListUserReportsUseCase {
     constructor(private readonly reportRepository: ReportMySQLRepository) {}
 
-    async execute(input: ListUserReportsInput): Promise<ListUserReportsOutput> {
+    async execute(
+        listUserReportsDto: ListUserReportsDto,
+    ): Promise<ListUserReportsResponseDto> {
         const { data, total } =
             await this.reportRepository.findByUserIdPaginated(
-                input.userId,
-                input.page,
-                input.limit,
+                listUserReportsDto.userId,
+                listUserReportsDto.page,
+                listUserReportsDto.limit,
             );
 
         return {
             data: data.map((report) => ReportResponseDto.fromEntity(report)),
             total,
-            page: input.page,
-            limit: input.limit,
-            totalPages: Math.ceil(total / input.limit),
+            page: listUserReportsDto.page,
+            limit: listUserReportsDto.limit,
+            totalPages: Math.ceil(total / listUserReportsDto.limit),
         };
     }
 }

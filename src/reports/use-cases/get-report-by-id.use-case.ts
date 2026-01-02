@@ -1,24 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { ReportMySQLRepository } from '../repositories/report.mysql-repository';
 import { ReportResponseDto } from '../dtos/report-response.dto';
+import { GetReportByIdDto } from '../dtos/get-report-by-id.dto';
 import { ReportNotFoundException } from '../exceptions/report-not-found.exception';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
-
-interface GetReportByIdInput {
-    userId: string;
-    reportId: string;
-}
 
 @Injectable()
-export class GetReportByIdUseCase
-    implements IUseCase<GetReportByIdInput, ReportResponseDto>
-{
+export class GetReportByIdUseCase {
     constructor(private readonly reportRepository: ReportMySQLRepository) {}
 
-    async execute(input: GetReportByIdInput): Promise<ReportResponseDto> {
-        const report = await this.reportRepository.findById(input.reportId);
+    async execute(
+        getReportByIdDto: GetReportByIdDto,
+    ): Promise<ReportResponseDto> {
+        const report = await this.reportRepository.findById(
+            getReportByIdDto.reportId,
+        );
 
-        if (!report || report.user_id !== input.userId) {
+        if (!report || report.user_id !== getReportByIdDto.userId) {
             throw new ReportNotFoundException();
         }
 

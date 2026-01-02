@@ -99,4 +99,12 @@ export class UserMySQLRepository implements IUserRepository {
             github_username: githubUsername,
         } as Partial<User>);
     }
+
+    async executeQuery<R = any>(query: string, params?: any[]): Promise<R> {
+        const [rows] = await this.pool.execute<RowDataPacket[]>(
+            query,
+            params || [],
+        );
+        return rows as R;
+    }
 }

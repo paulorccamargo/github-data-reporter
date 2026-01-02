@@ -5,25 +5,24 @@ import { JwtTokenService } from '../services/jwt.service';
 import { UserMySQLRepository } from '../../users/repositories/user.mysql-repository';
 import { InvalidCredentialsException } from '../exceptions/invalid-credentials.exception';
 import { UserNotFoundException } from '../../users/exceptions/user-not-found.exception';
-import { HashUtil } from '../../../common/utils/hash.util';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
+import { HashUtil } from '../../common/utils/hash.util';
 
 @Injectable()
-export class LoginUseCase implements IUseCase<LoginDto, TokenResponseDto> {
+export class LoginUseCase {
     constructor(
         private readonly userRepository: UserMySQLRepository,
         private readonly jwtTokenService: JwtTokenService,
     ) {}
 
-    async execute(data: LoginDto): Promise<TokenResponseDto> {
-        const user = await this.userRepository.findByEmail(data.email);
+    async execute(loginDto: LoginDto): Promise<TokenResponseDto> {
+        const user = await this.userRepository.findByEmail(loginDto.email);
 
         if (!user) {
             throw new UserNotFoundException();
         }
 
         const isPasswordValid = await HashUtil.compare(
-            data.password,
+            loginDto.password,
             user.password,
         );
 

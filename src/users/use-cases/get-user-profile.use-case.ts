@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { UserMySQLRepository } from '../repositories/user.mysql-repository';
 import { UserResponseDto } from '../dtos/user-response.dto';
+import { GetUserProfileDto } from '../dtos/get-user-profile.dto';
 import { UserNotFoundException } from '../exceptions/user-not-found.exception';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
 
 @Injectable()
-export class GetUserProfileUseCase
-    implements IUseCase<string, UserResponseDto>
-{
+export class GetUserProfileUseCase {
     constructor(private readonly userRepository: UserMySQLRepository) {}
 
-    async execute(userId: string): Promise<UserResponseDto> {
-        const user = await this.userRepository.findById(userId);
+    async execute(
+        getUserProfileDto: GetUserProfileDto,
+    ): Promise<UserResponseDto> {
+        const user = await this.userRepository.findById(
+            getUserProfileDto.userId,
+        );
 
         if (!user) {
             throw new UserNotFoundException();

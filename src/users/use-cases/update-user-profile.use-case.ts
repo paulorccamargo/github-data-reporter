@@ -1,32 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { UserMySQLRepository } from '../repositories/user.mysql-repository';
-import { UpdateUserDto } from '../dtos/update-user.dto';
+import { UpdateUserProfileDto } from '../dtos/update-user-profile.dto';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { UserNotFoundException } from '../exceptions/user-not-found.exception';
 import { DuplicateEmailException } from '../exceptions/duplicate-email.exception';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
-
-interface UpdateUserProfileInput {
-    userId: string;
-    data: UpdateUserDto;
-}
 
 @Injectable()
-export class UpdateUserProfileUseCase
-    implements IUseCase<UpdateUserProfileInput, UserResponseDto>
-{
+export class UpdateUserProfileUseCase {
     constructor(private readonly userRepository: UserMySQLRepository) {}
 
-    async execute(input: UpdateUserProfileInput): Promise<UserResponseDto> {
-        const user = await this.userRepository.findById(input.userId);
+    async execute(
+        updateUserProfileDto: UpdateUserProfileDto,
+    ): Promise<UserResponseDto> {
+        const user = await this.userRepository.findById(
+            updateUserProfileDto.userId,
+        );
 
         if (!user) {
             throw new UserNotFoundException();
         }
 
-        if (input.data.email && input.data.email !== user.email) {
+        if (
+            updateUserProfileDto.data.email &&
+            updateUserProfileDto.data.email !== user.email
+        ) {
             const existingUser = await this.userRepository.findByEmail(
-                input.data.email,
+                updateUserProfileDto.data.email,
             );
 
             if (existingUser) {
@@ -35,8 +34,8 @@ export class UpdateUserProfileUseCase
         }
 
         const updatedUser = await this.userRepository.update(
-            input.userId,
-            input.data,
+            updateUserProfileDto.userId,
+            updateUserProfileDto.data,
         );
 
         return UserResponseDto.fromEntity(updatedUser);

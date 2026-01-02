@@ -4,24 +4,13 @@ import { ReportMySQLRepository } from '../repositories/report.mysql-repository';
 import { ReportJobMySQLRepository } from '../repositories/report-job.mysql-repository';
 import { ReportQueueProducer } from '../producers/report-queue.producer';
 import { UserMySQLRepository } from '../../users/repositories/user.mysql-repository';
-import { RequestReportDto } from '../dtos/request-report.dto';
+import { RequestReportCommandDto } from '../dtos/request-report-command.dto';
 import { UserNotFoundException } from '../../users/exceptions/user-not-found.exception';
 import { ReportStatus, JobStatus } from '../types/report-status.enum';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
-
-interface RequestReportInput {
-    userId: string;
-    data: RequestReportDto;
-}
+import { DailyLimitExceededException } from '../exceptions/daily-limit-exceeded.exception';
 
 @Injectable()
-export class RequestReportUseCase
-    implements
-        IUseCase<
-            RequestReportInput,
-            { reportId: string; jobId: string; status: string }
-        >
-{
+export class RequestReportUseCase {
     constructor(
         private readonly reportRepository: ReportMySQLRepository,
         private readonly reportJobRepository: ReportJobMySQLRepository,
@@ -30,31 +19,41 @@ export class RequestReportUseCase
     ) {}
 
     async execute(
-        input: RequestReportInput,
+        requestReportCommandDto: RequestReportCommandDto,
     ): Promise<{ reportId: string; jobId: string; status: string }> {
-        const user = await this.userRepository.findById(input.userId);
+        const user = await this.userRepository.findById(
+            requestReportCommandDto.userId,
+        );
 
         if (!user) {
             throw new UserNotFoundException();
         }
 
+        const todayReportsCount =
+            await this.reportRepository.countTodayReportsByUserId(
+                requestReportCommandDto.userId,
+            );
+
+        if (todayReportsCount >= 3) {
+            throw new DailyLimitExceededException();
+        }
+
         const githubUsername =
-            input.data.github_username || user.github_username;
+            requestReportCommandDto.data.github_username || user.github_username;
 
         const reportId = uuidv4();
 
         await this.reportRepository.create({
             id: reportId,
-            user_id: input.userId,
+            user_id: requestReportCommandDto.userId,
             github_username: githubUsername,
             status: ReportStatus.PENDING,
         });
 
         const jobId = await this.reportQueueProducer.addReportGenerationJob({
             reportId,
-            userId: input.userId,
+            userId: requestReportCommandDto.userId,
             githubUsername,
-            githubToken: user.github_token,
             userEmail: user.email,
         });
 

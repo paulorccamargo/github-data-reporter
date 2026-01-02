@@ -3,40 +3,37 @@ import { ReportMySQLRepository } from '../repositories/report.mysql-repository';
 import { ReportJobMySQLRepository } from '../repositories/report-job.mysql-repository';
 import { ReportQueueProducer } from '../producers/report-queue.producer';
 import { ReportStatusDto } from '../dtos/report-status.dto';
+import { GetReportStatusDto } from '../dtos/get-report-status.dto';
 import { ReportNotFoundException } from '../exceptions/report-not-found.exception';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
-
-interface GetReportStatusInput {
-    userId: string;
-    reportId: string;
-}
 
 @Injectable()
-export class GetReportStatusUseCase
-    implements IUseCase<GetReportStatusInput, ReportStatusDto>
-{
+export class GetReportStatusUseCase {
     constructor(
         private readonly reportRepository: ReportMySQLRepository,
         private readonly reportJobRepository: ReportJobMySQLRepository,
         private readonly reportQueueProducer: ReportQueueProducer,
     ) {}
 
-    async execute(input: GetReportStatusInput): Promise<ReportStatusDto> {
-        const report = await this.reportRepository.findById(input.reportId);
+    async execute(
+        getReportStatusDto: GetReportStatusDto,
+    ): Promise<ReportStatusDto> {
+        const report = await this.reportRepository.findById(
+            getReportStatusDto.reportId,
+        );
 
-        if (!report || report.user_id !== input.userId) {
+        if (!report || report.user_id !== getReportStatusDto.userId) {
             throw new ReportNotFoundException();
         }
 
         const reportJob = await this.reportJobRepository.findByReportId(
-            input.reportId,
+            getReportStatusDto.reportId,
         );
 
         if (!reportJob) {
             return {
-                reportId: input.reportId,
+                reportId: getReportStatusDto.reportId,
                 status: report.status,
-                message: 'Report job not found',
+                message: 'Job de relatório não encontrado',
             };
         }
 
@@ -45,7 +42,7 @@ export class GetReportStatusUseCase
         );
 
         return {
-            reportId: input.reportId,
+            reportId: getReportStatusDto.reportId,
             status: report.status,
             jobId: reportJob.job_id,
             jobStatus: jobStatus?.status || reportJob.status,

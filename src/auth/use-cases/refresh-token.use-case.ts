@@ -1,21 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { TokenResponseDto } from '../dtos/token-response.dto';
+import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 import { JwtTokenService } from '../services/jwt.service';
 import { UserMySQLRepository } from '../../users/repositories/user.mysql-repository';
 import { InvalidCredentialsException } from '../exceptions/invalid-credentials.exception';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
 
 @Injectable()
-export class RefreshTokenUseCase implements IUseCase<string, TokenResponseDto> {
+export class RefreshTokenUseCase {
     constructor(
         private readonly userRepository: UserMySQLRepository,
         private readonly jwtTokenService: JwtTokenService,
     ) {}
 
-    async execute(refreshToken: string): Promise<TokenResponseDto> {
+    async execute(
+        refreshTokenDto: RefreshTokenDto,
+    ): Promise<TokenResponseDto> {
         try {
-            const payload =
-                this.jwtTokenService.verifyRefreshToken(refreshToken);
+            const payload = this.jwtTokenService.verifyRefreshToken(
+                refreshTokenDto.refreshToken,
+            );
             const user = await this.userRepository.findById(payload.sub);
 
             if (!user) {

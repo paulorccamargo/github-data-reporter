@@ -1,41 +1,39 @@
 import { Injectable } from '@nestjs/common';
 import { UserMySQLRepository } from '../repositories/user.mysql-repository';
-import { UpdatePasswordDto } from '../dtos/update-password.dto';
+import { UpdateUserPasswordDto } from '../dtos/update-user-password.dto';
 import { UserNotFoundException } from '../exceptions/user-not-found.exception';
-import { UnauthorizedException } from '../../../common/exceptions/unauthorized.exception';
-import { HashUtil } from '../../../common/utils/hash.util';
-import { IUseCase } from '../../../common/contracts/use-case.contract';
-
-interface UpdateUserPasswordInput {
-    userId: string;
-    data: UpdatePasswordDto;
-}
+import { InvalidOldPasswordException } from '../exceptions/invalid-old-password.exception';
+import { HashUtil } from '../../common/utils/hash.util';
 
 @Injectable()
-export class UpdateUserPasswordUseCase
-    implements IUseCase<UpdateUserPasswordInput, void>
-{
+export class UpdateUserPasswordUseCase {
     constructor(private readonly userRepository: UserMySQLRepository) {}
 
-    async execute(input: UpdateUserPasswordInput): Promise<void> {
-        const user = await this.userRepository.findById(input.userId);
+    async execute(
+        updateUserPasswordDto: UpdateUserPasswordDto,
+    ): Promise<void> {
+        const user = await this.userRepository.findById(
+            updateUserPasswordDto.userId,
+        );
 
         if (!user) {
             throw new UserNotFoundException();
         }
 
         const isPasswordValid = await HashUtil.compare(
-            input.data.old_password,
+            updateUserPasswordDto.data.old_password,
             user.password,
         );
 
         if (!isPasswordValid) {
-            throw new UnauthorizedException('Invalid old password');
+            throw new InvalidOldPasswordException();
         }
 
-        const hashedPassword = await HashUtil.hash(input.data.new_password);
+        const hashedPassword = await HashUtil.hash(
+            updateUserPasswordDto.data.new_password,
+        );
 
-        await this.userRepository.update(input.userId, {
+        await this.userRepository.update(updateUserPasswordDto.userId, {
             password: hashedPassword,
         });
     }
