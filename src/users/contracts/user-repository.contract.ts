@@ -1,4 +1,4 @@
-import { IRepository } from '../../../common/contracts/repository.contract';
+import { IRepository } from '../../common/contracts/repository.contract';
 import { User } from '../entities/user.entity';
 
 export interface IUserRepository extends IRepository<User> {

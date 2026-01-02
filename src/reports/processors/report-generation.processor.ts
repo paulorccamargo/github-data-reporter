@@ -16,6 +16,7 @@ import { ReportGeneratorService } from '../services/report-generator.service';
 import { EmailService } from '../../notifications/services/email.service';
 import { ReportJobData } from '../types/report-job-data.type';
 import { ReportStatus, JobStatus } from '../types/report-status.enum';
+import { RateLimitException } from '../../github/exceptions/rate-limit.exception';
 
 @Processor('report-generation')
 export class ReportGenerationProcessor {
@@ -32,7 +33,7 @@ export class ReportGenerationProcessor {
 
     @Process('generate-report')
     async handleReportGeneration(job: Job<ReportJobData>) {
-        const { reportId, userId, githubUsername, githubToken } = job.data;
+        const { reportId, userId, githubUsername } = job.data;
 
         this.logger.log(`Starting report generation for report: ${reportId}`);
 
@@ -53,7 +54,6 @@ export class ReportGenerationProcessor {
             this.logger.log(`Fetching GitHub stats for ${githubUsername}`);
             const stats = await this.githubService.getGithubStats(
                 githubUsername,
-                githubToken,
             );
 
             job.progress(60);
@@ -118,9 +118,19 @@ export class ReportGenerationProcessor {
                 error.stack,
             );
 
+            let errorMessage = error.message;
+
+            if (error instanceof RateLimitException) {
+                errorMessage =
+                    'GitHub API rate limit exceeded. Please try again in a few minutes.';
+                this.logger.warn(
+                    `Rate limit exceeded while generating report ${reportId}`,
+                );
+            }
+
             await this.reportRepository.update(reportId, {
                 status: ReportStatus.FAILED,
-                error_message: error.message,
+                error_message: errorMessage,
             });
 
             const reportJob =
@@ -128,7 +138,7 @@ export class ReportGenerationProcessor {
             if (reportJob) {
                 await this.reportJobRepository.update(reportJob.id, {
                     status: JobStatus.FAILED,
-                    error: error.message,
+                    error: errorMessage,
                     attempts: reportJob.attempts + 1,
                 });
             }

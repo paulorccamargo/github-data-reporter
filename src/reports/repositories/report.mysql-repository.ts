@@ -127,4 +127,16 @@ export class ReportMySQLRepository {
             total: countResult[0].count,
         };
     }
+
+    async countTodayReportsByUserId(userId: string): Promise<number> {
+        const query = `
+      SELECT COUNT(*) as count FROM ${this.tableName}
+      WHERE user_id = ? AND DATE(requested_at) = CURDATE()
+    `;
+
+        const [rows] = await this.pool.execute<RowDataPacket[]>(query, [
+            userId,
+        ]);
+        return rows[0].count;
+    }
 }
