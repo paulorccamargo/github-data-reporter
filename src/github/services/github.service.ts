@@ -10,33 +10,21 @@ import { GithubStats } from '../types/github-stats.type';
 export class GithubService {
     constructor(private readonly githubClient: GithubClientService) {}
 
-    async fetchUserData(
-        username: string,
-        token?: string,
-    ): Promise<GithubUserDataDto> {
-        return this.githubClient.get<GithubUserDataDto>(
-            `/users/${username}`,
-            token,
-        );
+    async fetchUserData(username: string): Promise<GithubUserDataDto> {
+        return this.githubClient.get<GithubUserDataDto>(`/users/${username}`);
     }
 
     async fetchRepositories(
         username: string,
-        token?: string,
     ): Promise<GithubRepositoryDto[]> {
         return this.githubClient.get<GithubRepositoryDto[]>(
             `/users/${username}/repos?sort=updated&per_page=100`,
-            token,
         );
     }
 
-    async fetchUserEvents(
-        username: string,
-        token?: string,
-    ): Promise<GithubEventDto[]> {
+    async fetchUserEvents(username: string): Promise<GithubEventDto[]> {
         return this.githubClient.get<GithubEventDto[]>(
             `/users/${username}/events?per_page=100`,
-            token,
         );
     }
 
@@ -44,19 +32,16 @@ export class GithubService {
         username: string,
         repo: string,
         since: Date,
-        token?: string,
     ): Promise<GithubCommitDto[]> {
         const sinceParam = since.toISOString();
         return this.githubClient.get<GithubCommitDto[]>(
             `/repos/${username}/${repo}/commits?since=${sinceParam}&per_page=100`,
-            token,
         );
     }
 
     async fetchAllCommitsLastWeek(
         username: string,
         repositories: GithubRepositoryDto[],
-        token?: string,
     ): Promise<{ total: number; byRepo: Map<string, number> }> {
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -70,7 +55,6 @@ export class GithubService {
                     username,
                     repo.name,
                     oneWeekAgo,
-                    token,
                 );
 
                 const userCommits = commits.filter(
@@ -93,20 +77,16 @@ export class GithubService {
         return { total, byRepo: commitsByRepo };
     }
 
-    async getGithubStats(
-        username: string,
-        token?: string,
-    ): Promise<GithubStats> {
+    async getGithubStats(username: string): Promise<GithubStats> {
         const [userData, repositories, events] = await Promise.all([
-            this.fetchUserData(username, token),
-            this.fetchRepositories(username, token),
-            this.fetchUserEvents(username, token),
+            this.fetchUserData(username),
+            this.fetchRepositories(username),
+            this.fetchUserEvents(username),
         ]);
 
         const commits = await this.fetchAllCommitsLastWeek(
             username,
             repositories,
-            token,
         );
 
         const recentActivities = events.slice(0, 10).map((event) => ({
@@ -133,12 +113,4 @@ export class GithubService {
         };
     }
 
-    async validateToken(token: string): Promise<boolean> {
-        try {
-            await this.githubClient.get('/user', token);
-            return true;
-        } catch {
-            return false;
-        }
-    }
 }

@@ -3,7 +3,6 @@ import {
     IsNotEmpty,
     IsString,
     MinLength,
-    IsOptional,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -19,8 +18,4 @@ export class CreateUserDto {
     @IsString()
     @IsNotEmpty()
     github_username: string;
-
-    @IsString()
-    @IsOptional()
-    github_token?: string;
 }

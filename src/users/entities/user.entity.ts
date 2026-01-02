@@ -3,7 +3,6 @@ export class User {
     email: string;
     password: string;
     github_username: string;
-    github_token?: string;
     is_active: boolean;
     created_at: Date;
     updated_at: Date;

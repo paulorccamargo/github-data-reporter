@@ -8,8 +8,4 @@ export class UpdateUserDto {
     @IsString()
     @IsOptional()
     github_username?: string;
-
-    @IsString()
-    @IsOptional()
-    github_token?: string;
 }
